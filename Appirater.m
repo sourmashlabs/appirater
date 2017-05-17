@@ -37,6 +37,7 @@
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <CFNetwork/CFNetwork.h>
 #import "Appirater.h"
+#import <StoreKit/StoreKit.h>
 #include <netinet/in.h>
 
 #if ! __has_feature(objc_arc)
@@ -649,7 +650,9 @@ static BOOL _alwaysUseMainBundle = NO;
 		}];
 	
 	//Use the standard openUrl method if StoreKit is unavailable.
-	} else {
+    } else if ([SKStoreReviewController class]) {
+        [SKStoreReviewController requestReview];
+    } else {
 		
 		#if TARGET_IPHONE_SIMULATOR
 		NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
