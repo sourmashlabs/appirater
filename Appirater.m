@@ -627,52 +627,56 @@ static BOOL _alwaysUseMainBundle = NO;
 	return controller;
 }
 
-+ (void)rateApp {
-	
-	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-	[userDefaults setBool:YES forKey:kAppiraterRatedCurrentVersion];
-	[userDefaults synchronize];
-
-	//Use the in-app StoreKit view if available (iOS 6) and imported. This works in the simulator.
-	if (![Appirater sharedInstance].openInAppStore && NSStringFromClass([SKStoreProductViewController class]) != nil) {
-		
-		SKStoreProductViewController *storeViewController = [[SKStoreProductViewController alloc] init];
-		NSNumber *appId = [NSNumber numberWithInteger:_appId.integerValue];
-		[storeViewController loadProductWithParameters:@{SKStoreProductParameterITunesItemIdentifier:appId} completionBlock:nil];
-		storeViewController.delegate = self.sharedInstance;
++ (void)rateApp:(BOOL)forceOpenInSafari
+{
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    [userDefaults setBool:YES forKey:kAppiraterRatedCurrentVersion];
+    [userDefaults synchronize];
+    
+    //Use the in-app StoreKit view if available (iOS 6) and imported. This works in the simulator.
+    if (![Appirater sharedInstance].openInAppStore && NSStringFromClass([SKStoreProductViewController class]) != nil) {
+        
+        SKStoreProductViewController *storeViewController = [[SKStoreProductViewController alloc] init];
+        NSNumber *appId = [NSNumber numberWithInteger:_appId.integerValue];
+        [storeViewController loadProductWithParameters:@{SKStoreProductParameterITunesItemIdentifier:appId} completionBlock:nil];
+        storeViewController.delegate = self.sharedInstance;
         
         id <AppiraterDelegate> delegate = self.sharedInstance.delegate;
-		if ([delegate respondsToSelector:@selector(appiraterWillPresentModalView:animated:)]) {
-			[delegate appiraterWillPresentModalView:self.sharedInstance animated:_usesAnimation];
-		}
-		[[self getRootViewController] presentViewController:storeViewController animated:_usesAnimation completion:^{
-			[self setModalOpen:YES];
-		}];
-	
-	//Use the standard openUrl method if StoreKit is unavailable.
-    } else if ([SKStoreReviewController class]) {
+        if ([delegate respondsToSelector:@selector(appiraterWillPresentModalView:animated:)]) {
+            [delegate appiraterWillPresentModalView:self.sharedInstance animated:_usesAnimation];
+        }
+        [[self getRootViewController] presentViewController:storeViewController animated:_usesAnimation completion:^{
+            [self setModalOpen:YES];
+        }];
+        
+        //Use the standard openUrl method if StoreKit is unavailable.
+    } else if ([SKStoreReviewController class] && !forceOpenInSafari) {
         [SKStoreReviewController requestReview];
     } else {
-		
-		#if TARGET_IPHONE_SIMULATOR
-		NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
-		#else
-		NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
-
-		// iOS 7 needs a different templateReviewURL @see https://github.com/arashpayan/appirater/issues/131
+        
+#if TARGET_IPHONE_SIMULATOR
+        NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
+#else
+        NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
+        
+        // iOS 7 needs a different templateReviewURL @see https://github.com/arashpayan/appirater/issues/131
         // Fixes condition @see https://github.com/arashpayan/appirater/issues/205
-		if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0 && [[[UIDevice currentDevice] systemVersion] floatValue] < 8.0) {
-			reviewURL = [templateReviewURLiOS7 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
-		}
+        if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0 && [[[UIDevice currentDevice] systemVersion] floatValue] < 8.0) {
+            reviewURL = [templateReviewURLiOS7 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
+        }
         // iOS 8 needs a different templateReviewURL also @see https://github.com/arashpayan/appirater/issues/182
         else if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0)
         {
             reviewURL = [templateReviewURLiOS8 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
         }
+        
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
+#endif
+    }
+}
 
-		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
-		#endif
-	}
++ (void)rateApp {
+    [self rateApp:NO];
 }
 
 - (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex {

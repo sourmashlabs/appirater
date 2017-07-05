@@ -182,6 +182,12 @@ extern NSString *const kAppiraterReminderRequestDate;
  */
 + (void)rateApp;
 
+/*
+ Force Appirater to open the App Store page where the user can specify a
+ rating for the app.
+*/
++ (void)rateApp:(BOOL)forceOpenInSafari;
+
 /*!
  Tells Appirater to immediately close any open rating modals (e.g. StoreKit rating VCs).
 */
